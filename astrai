@@ -1,0 +1,115 @@
+from math import *
+from random import *
+from pyray import *
+from shapes import *
+from classes import *
+import numpy as np
+
+width = 600
+height = 600
+scroll = 0.3
+max_ships = 20
+borders = 1500
+
+snap = True
+snapTo = 0
+
+camera = np.array([ 2200, 1700, .18, width, height])
+
+ships = []
+while len(ships) < max_ships: ships.append(Ship(np.array([random()*borders*2-borders, random()*borders*2-borders]), random()*pi))
+bullets = []
+foods = []
+
+init_window( width, height, "window")
+set_target_fps(30)
+while not window_should_close():
+    while len(ships) < max_ships: ships.append(Ship(np.array([random()*borders*2-borders, random()*borders*2-borders]), random()*pi))
+    while len(bullets) > 100: bullets.pop(0)
+    while len(foods) > 30: foods.pop(0)
+
+    oldest = 0
+    for i in range(len(ships)): #i cant find a better way :/
+        if ships[i].age > ships[oldest].age:
+            oldest = i
+    snapTo = ships[oldest]
+
+    if is_mouse_button_down(MOUSE_BUTTON_LEFT):
+        camera += np.array([get_mouse_delta().x, get_mouse_delta().y, 0, 0, 0]) / camera[2]
+    if get_mouse_wheel_move() > 0:
+        camera[2] = camera[2] * (1 + scroll)
+    if get_mouse_wheel_move() < 0:
+        camera[2] = camera[2] * (1 - scroll)
+    if is_key_pressed(KEY_SPACE):
+        snap = not snap
+    if snap == True:
+        camera[0] = -snapTo.pos[0]
+        camera[1] = -snapTo.pos[1]
+
+
+    begin_drawing()
+    clear_background(Color(3, 3, 5, 255))
+
+    for i in ships:
+        i.update()
+        i.think(ships, bullets, foods, camera)
+        i.render(camera)
+        if i.pos[0] > borders:
+            i.pos[0] = -borders
+        if i.pos[0] < -borders:
+            i.pos[0] = borders
+        if i.pos[1] > borders:
+            i.pos[1] = -borders
+        if i.pos[1] < -borders:
+            i.pos[1] = borders
+        
+    for i in bullets:
+        i.update()
+        i.render(camera)
+        if i.pos[0] > borders:
+            i.pos = np.array([5000.0, 5000.0])
+        if i.pos[0] < -borders:
+            i.pos = np.array([5000.0, 5000.0])
+        if i.pos[1] > borders:
+            i.pos = np.array([5000.0, 5000.0])
+        if i.pos[1] < -borders:
+            i.pos = np.array([5000.0, 5000.0])
+
+    for i in foods:
+        i.render(camera)
+
+    dying = []
+    eaten = []
+    for index1, ship1 in enumerate(ships):
+        for index2, ship2 in enumerate(ships):
+            if index1 == index2: continue
+            d = ship1.pos - ship2.pos
+            d = sqrt(d[0]**2 + d[1]**2)
+            if d < ship1.size + ship2.size:
+                dying.append(index1)
+                dying.append(index2)
+        for bullet in bullets:
+            if id(ship1) == bullet.id: continue
+            d = ship1.pos - bullet.pos
+            d = sqrt(d[0]**2 + d[1]**2)
+            if d < ship1.size + ship2.size:
+                dying.append(index1)
+        for foodIndex, food in enumerate(foods):
+            d = ship1.pos - food.pos
+            d = sqrt(d[0]**2 + d[1]**2)
+            if d < ship1.size + food.size:
+                ship1.fuel += 50
+                eaten.append(foodIndex)
+        if ship1.fuel <= 0:
+            dying.append(index1)
+    foods = [i for j, i in enumerate(foods) if j not in eaten]
+    foods += [Food(ships[i].pos) for i in dying]
+    ships = [i for j, i in enumerate(ships) if j not in dying]
+
+    line(-borders, -borders, -borders, borders, camera)
+    line(-borders, -borders, borders, -borders, camera)
+    line(-borders, borders, borders, borders, camera)
+    line(borders, -borders, borders, borders, camera)
+    end_drawing()
+
+close_window()
