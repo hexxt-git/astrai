@@ -14,7 +14,7 @@ def human_format(num):
         magnitude += 1
         num /= 1000.0
     # add more suffixes if you need them
-    return '%.2f%s' % (num, ['', 'Thousand', 'Million', 'Billion', 'Trilion', 'Quadrillion', 'Quintillion', 'Sextillion', 'Septillion', 'Octillion'][magnitude])
+    return '%.2f%s' % (num, ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'][magnitude])
 
 class Ship:
     def __init__(self, pos, r, network, color):
@@ -27,15 +27,16 @@ class Ship:
         self.maxV = 18
         self.turnSpeed = 0.5
         self.fuel = 50 + random()*30
-        self.bulletCost = 15
+        self.bulletCost = 25
         self.age = 0
-        self.rays = 10
+        self.rays = 12
         self.segments = 5
         self.segmentSize = 80
         self.network = network
         self.color = color
         self.kills = 0
         self.eats = 0
+        self.traveled = 0
     def think(self, ships, bullets, foods, camera):
         sensors = self.sense(ships, foods, camera)
         inputs = sensors[0] + sensors[1] + [self.thrust, self.fuel, self.r, self.vel[0], self.vel[1], random()*8-4]
@@ -63,6 +64,9 @@ class Ship:
         self.vr = ( calculated[2][1]*2 - 1) * self.turnSpeed
         if calculated[2][2] > 0.5: self.shoot(bullets)
 
+    def score(self):
+        return pow(self.age, 1) * pow(self.kills+1, 1.3) * pow(self.eats+1, 2) * pow(self.traveled, 1.3)
+
     def update(self):
         while self.r > pi*2: self.r -= pi*2
         while self.r < 0: self.r += pi*2
@@ -70,15 +74,16 @@ class Ship:
         self.fuel -= 0.1
 
         self.r += self.vr
-        self.fuel -= abs(self.vr / 2)
+        self.fuel -= abs(self.vr / 1.5)
 
         self.vel -= np.array([sin(self.r), cos(self.r)]) * self.thrust
-        self.fuel -= self.thrust / 5
+        self.fuel -= self.thrust / 3
 
         self.vel *= 0.98
         if hypot(self.vel[0], self.vel[1]) > self.maxV:
             self.vel = self.vel / hypot(self.vel[0], self.vel[1]) * self.maxV
         self.pos += self.vel
+        self.traveled += hypot(self.vel[0], self.vel[1])
         
     def sense(self, ships, foods, camera):
         enemies = [.0]*self.rays
@@ -113,10 +118,10 @@ class Ship:
         point3 = np.array([sin(self.r+pi*2-pi/4), cos(self.r+pi*2-pi/4)]) * self.size + self.pos
         point4 = np.array([sin(self.r), cos(self.r)]) * 6  + self.pos
         point5 = np.array([sin(self.r), cos(self.r)]) * 10  + self.pos
-        line(point1[0], point1[1], point2[0], point2[1], camera, color=[self.color[0],self.color[1],self.color[2],255])
-        line(point2[0], point2[1], self.pos[0], self.pos[1], camera, color=[self.color[0],self.color[1],self.color[2],255])
-        line(point3[0], point3[1], self.pos[0], self.pos[1], camera, color=[self.color[0],self.color[1],self.color[2],255])
-        line(point1[0], point1[1], point3[0], point3[1], camera, color=[self.color[0],self.color[1],self.color[2],255])
+        line(point1[0], point1[1], point2[0], point2[1], camera, color=[(self.color[0]+50)%255,(self.color[1]+50)%255,(self.color[2]+50)%255,255])
+        line(point2[0], point2[1], self.pos[0], self.pos[1], camera, color=[(self.color[0]+50)%255,(self.color[1]+50)%255,(self.color[2]+50)%255,255])
+        line(point3[0], point3[1], self.pos[0], self.pos[1], camera, color=[(self.color[0]+50)%255,(self.color[1]+50)%255,(self.color[2]+50)%255,255])
+        line(point1[0], point1[1], point3[0], point3[1], camera, color=[(self.color[0]+50)%255,(self.color[1]+50)%255,(self.color[2]+50)%255,255])
         circle(point4[0], point4[1], self.thrust/3*5, camera)
         circle(point5[0], point5[1], self.thrust/3*4, camera)
         text( 'fuel: '+str(int(self.fuel*10)/10), self.pos[0]+15, self.pos[1]+15, 15, camera)
@@ -124,7 +129,7 @@ class Ship:
         text( 'age: '+str(self.age), self.pos[0]+15, self.pos[1]+45, 15, camera)
         text( 'eaten: '+str(self.eats), self.pos[0]+15, self.pos[1]+60, 15, camera)
         text( 'kills: '+str(self.kills), self.pos[0]+15, self.pos[1]+75, 15, camera)
-        text( 'breeding: '+str(human_format( pow(self.age, 2) * pow(self.kills+1, 2) * pow(self.eats+1, 4) )), self.pos[0]+15, self.pos[1]+90, 15, camera)
+        text( 'breeding: '+str(human_format(self.score())), self.pos[0]+15, self.pos[1]+90, 15, camera)
 
 class Bullet:
     def __init__(self, pos, vel, id):
@@ -133,9 +138,9 @@ class Bullet:
         self.id = id
         self.size = 3
     def update(self):
-        self.pos += self.vel
+        self.pos += self.vel * 2
     def render(self, camera):
-        circle(self.pos[0], self.pos[1], self.size, camera)
+        circle(self.pos[0], self.pos[1], self.size, camera, RED)
 
 class Food:
     def __init__(self, pos):

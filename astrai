@@ -8,10 +8,10 @@ import numpy as np
 width = 1200
 height = 720
 scroll = 0.3
-max_ships = 20
+max_ships = 17
 borders = 1000
 
-mutation = 0.2
+mutation = 0.3
 
 snap = False
 snapTo = 0
@@ -54,20 +54,20 @@ bullets = []
 foods = []
 
 init_window( width, height, "window")
-set_target_fps(30)
 step = 0
 while not window_should_close():
     step += 1
     
-    while len(bullets) > 100: bullets.pop(0)
+    while len(bullets) > 80: bullets.pop(0)
     while len(foods) > 45: foods.pop(0)
 
     probabilities = []
+    scores = []
     for ship in ships:
-        probability = pow(ship.age, 2) * pow(ship.kills+1, 2) * pow(ship.eats+1, 4) * pow(random()+0.5, 1)
-        probabilities.append(probability)
+        probabilities.append(ship.score() * (random()+0.5))
+        scores.append(ship.score())
     breeder = probabilities.index(max(probabilities))
-    snapTo = ships[breeder]
+    snapTo = ships[scores.index(max(scores))]
 
     if step % 60 == 0: print(human_format(sum(probabilities)))
  
@@ -80,29 +80,44 @@ while not window_should_close():
                     weights[layer].append([])
                     if layer == 0:
                         for connection in range(26):
-                            weights[layer][node].append(ships[breeder].network[0][layer][node][connection] * (random()*mutation*2 + 1-mutation ))
+                            if random() < .95:
+                                weights[layer][node].append(ships[breeder].network[0][layer][node][connection] * (random()*mutation*2 + 1-mutation ))
+                            else:
+                                weights[layer][node].append(random()*8-4)
                     if layer == 1:
                         for connection in range(12):
-                            weights[layer][node].append(ships[breeder].network[0][layer][node][connection] * (random()*mutation*2 + 1-mutation ))
+                            if random() < .95:
+                                weights[layer][node].append(ships[breeder].network[0][layer][node][connection] * (random()*mutation*2 + 1-mutation ))
+                            else:
+                                weights[layer][node].append(random()*8-4)
             if layer == 2:
                 for node in range(3):
                     weights[layer].append([])
                     for connection in range(12):
-                        weights[layer][node].append(ships[breeder].network[0][layer][node][connection] * (random()*mutation*2 + 1-mutation ))
+                        if random() < .95:
+                            weights[layer][node].append(ships[breeder].network[0][layer][node][connection] * (random()*mutation*2 + 1-mutation ))
+                        else:
+                            weights[layer][node].append(random()*8-4)
         biases = []
         for layer in range(3):
             biases.append([])
             if layer == 0 or layer == 1:
                 for node in range(12):
-                    biases[layer].append(ships[breeder].network[1][layer][node] * (random()*mutation*2 + 1-mutation ))
+                    if random() < .95:
+                        biases[layer].append(ships[breeder].network[1][layer][node] * (random()*mutation*2 + 1-mutation ))
+                    else:
+                        biases[layer].append(random()*8-4)
             if layer == 2:
                 for node in range(3):
-                    biases[layer].append(ships[breeder].network[1][layer][node] * (random()*mutation*2 + 1-mutation ))
+                    if random() < .95:
+                        biases[layer].append(ships[breeder].network[1][layer][node] * (random()*mutation*2 + 1-mutation ))
+                    else:
+                        biases[layer].append(random()*8-4)
         network = [weights, biases]
         color = [[],[],[]]
-        color[0] = int(ships[breeder].color[0] * (random()*mutation*2 + 1-mutation ) * 1.3 % 255) 
-        color[1] = int(ships[breeder].color[1] * (random()*mutation*2 + 1-mutation ) * 1.3 % 255) 
-        color[2] = int(ships[breeder].color[2] * (random()*mutation*2 + 1-mutation ) * 1.3 % 255) 
+        color[0] = int(ships[breeder].color[0] * (random()*mutation*2 + 1-mutation ) % 255) 
+        color[1] = int(ships[breeder].color[1] * (random()*mutation*2 + 1-mutation ) % 255) 
+        color[2] = int(ships[breeder].color[2] * (random()*mutation*2 + 1-mutation ) % 255) 
 
         ships.append(Ship(np.array([random()*borders*2-borders, random()*borders*2-borders]), random()*pi, network, color))
 
@@ -175,7 +190,7 @@ while not window_should_close():
             d = ship1.pos - food.pos
             d = sqrt(d[0]**2 + d[1]**2)
             if d < ship1.size + food.size:
-                ship1.fuel += 50
+                ship1.fuel += 80
                 ship1.eats += 1
                 eaten.append(foodIndex)
         if ship1.fuel <= 0:
@@ -189,7 +204,7 @@ while not window_should_close():
     line(-borders, borders, borders, borders, camera)
     line(borders, -borders, borders, borders, camera)
 
-
+    draw_fps(5, 5)
     end_drawing()
 
 
