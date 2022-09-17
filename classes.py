@@ -29,7 +29,7 @@ class Ship:
         self.fuel = 50 + random()*30
         self.bulletCost = 25
         self.age = 0
-        self.rays = 12
+        self.rays = 16
         self.segments = 5
         self.segmentSize = 80
         self.network = network
@@ -41,28 +41,28 @@ class Ship:
         sensors = self.sense(ships, foods, camera)
         inputs = sensors[0] + sensors[1] + [self.thrust, self.fuel, self.r, self.vel[0], self.vel[1], random()*8-4]
         calculated = []
-        for layer in range(3):
+        for layer in range(4):
             calculated.append([])
-            if layer == 0 or layer == 1:
-                for node in range(12):
+            if layer <= 2:
+                for node in range(16):
                     calc = self.network[1][layer][node]
                     if layer == 0:
                         for inp in range(26):
                             calc += self.network[0][layer][node][inp] * inputs[inp]
-                    if layer == 1:
-                        for inp in range(12):
+                    if layer == 1 or layer == 2:
+                        for inp in range(16):
                             calc += self.network[0][layer][node][inp] * calculated[0][inp]
                     calculated[layer].append(sigmoid(calc))
-            if layer == 2:
+            if layer == 3:
                 for node in range(3):
                     calc = self.network[1][layer][node]
-                    for inp in range(12):
+                    for inp in range(16):
                         calc += self.network[0][layer][node][inp] * calculated[1][inp]
                     calculated[layer].append(sigmoid(calc))
 
-        self.thrust = calculated[2][0] * 3
-        self.vr = ( calculated[2][1]*2 - 1) * self.turnSpeed
-        if calculated[2][2] > 0.5: self.shoot(bullets)
+        self.thrust = calculated[3][0] * 3
+        self.vr = ( calculated[3][1]*2 - 1) * self.turnSpeed
+        if calculated[3][2] > 0.5: self.shoot(bullets)
 
     def score(self):
         return pow(self.age, 1) * pow(self.kills+1, 1.3) * pow(self.eats+1, 2) * pow(self.traveled, 1.3)
@@ -71,13 +71,13 @@ class Ship:
         while self.r > pi*2: self.r -= pi*2
         while self.r < 0: self.r += pi*2
         self.age += 1
-        self.fuel -= 0.1
+        self.fuel -= 0.05
 
         self.r += self.vr
-        self.fuel -= abs(self.vr / 1.5)
+        self.fuel -= abs(self.vr / 2)
 
         self.vel -= np.array([sin(self.r), cos(self.r)]) * self.thrust
-        self.fuel -= self.thrust / 3
+        self.fuel -= self.thrust / 4
 
         self.vel *= 0.98
         if hypot(self.vel[0], self.vel[1]) > self.maxV:
@@ -118,10 +118,10 @@ class Ship:
         point3 = np.array([sin(self.r+pi*2-pi/4), cos(self.r+pi*2-pi/4)]) * self.size + self.pos
         point4 = np.array([sin(self.r), cos(self.r)]) * 6  + self.pos
         point5 = np.array([sin(self.r), cos(self.r)]) * 10  + self.pos
-        line(point1[0], point1[1], point2[0], point2[1], camera, color=[(self.color[0]+50)%255,(self.color[1]+50)%255,(self.color[2]+50)%255,255])
-        line(point2[0], point2[1], self.pos[0], self.pos[1], camera, color=[(self.color[0]+50)%255,(self.color[1]+50)%255,(self.color[2]+50)%255,255])
-        line(point3[0], point3[1], self.pos[0], self.pos[1], camera, color=[(self.color[0]+50)%255,(self.color[1]+50)%255,(self.color[2]+50)%255,255])
-        line(point1[0], point1[1], point3[0], point3[1], camera, color=[(self.color[0]+50)%255,(self.color[1]+50)%255,(self.color[2]+50)%255,255])
+        line(point1[0], point1[1], point2[0], point2[1], camera)
+        line(point2[0], point2[1], self.pos[0], self.pos[1], camera)
+        line(point3[0], point3[1], self.pos[0], self.pos[1], camera)
+        line(point1[0], point1[1], point3[0], point3[1], camera)
         circle(point4[0], point4[1], self.thrust/3*5, camera)
         circle(point5[0], point5[1], self.thrust/3*4, camera)
         text( 'fuel: '+str(int(self.fuel*10)/10), self.pos[0]+15, self.pos[1]+15, 15, camera)
@@ -140,7 +140,7 @@ class Bullet:
     def update(self):
         self.pos += self.vel * 2
     def render(self, camera):
-        circle(self.pos[0], self.pos[1], self.size, camera, RED)
+        circle(self.pos[0], self.pos[1], self.size, camera)
 
 class Food:
     def __init__(self, pos):

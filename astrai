@@ -21,29 +21,29 @@ camera = np.array([ 0, 0, .18, width, height])
 ships = []
 while len(ships) < max_ships:
     weights = []
-    for layer in range(3):
+    for layer in range(4):
         weights.append([])
-        if layer == 0 or layer == 1:
-            for node in range(12):
+        if layer <= 2:
+            for node in range(16):
                 weights[layer].append([])
                 if layer == 0:
                     for connection in range(26):
                         weights[layer][node].append(random()*8-4)
-                if layer == 1:
-                    for connection in range(12):
+                if layer == 1 or layer == 2:
+                    for connection in range(16):
                         weights[layer][node].append(random()*8-4)
-        if layer == 2:
+        if layer == 3:
             for node in range(3):
                 weights[layer].append([])
-                for connection in range(12):
+                for connection in range(16):
                     weights[layer][node].append(random()*8-4)
     biases = []
-    for layer in range(3):
+    for layer in range(4):
         biases.append([])
-        if layer == 0 or layer == 1:
-            for node in range(12):
+        if layer <= 2:
+            for node in range(16):
                 biases[layer].append(random()*8-4)
-        if layer == 2:
+        if layer == 3:
             for node in range(3):
                 biases[layer].append(random()*8-4)
     network = [weights, biases]
@@ -73,10 +73,10 @@ while not window_should_close():
  
     while len(ships) < max_ships:
         weights = []
-        for layer in range(3):
+        for layer in range(4):
             weights.append([])
-            if layer == 0 or layer == 1:
-                for node in range(12):
+            if layer <= 2:
+                for node in range(16):
                     weights[layer].append([])
                     if layer == 0:
                         for connection in range(26):
@@ -84,30 +84,30 @@ while not window_should_close():
                                 weights[layer][node].append(ships[breeder].network[0][layer][node][connection] * (random()*mutation*2 + 1-mutation ))
                             else:
                                 weights[layer][node].append(random()*8-4)
-                    if layer == 1:
-                        for connection in range(12):
+                    if layer == 1 or layer == 2:
+                        for connection in range(16):
                             if random() < .95:
                                 weights[layer][node].append(ships[breeder].network[0][layer][node][connection] * (random()*mutation*2 + 1-mutation ))
                             else:
                                 weights[layer][node].append(random()*8-4)
-            if layer == 2:
+            if layer == 3:
                 for node in range(3):
                     weights[layer].append([])
-                    for connection in range(12):
+                    for connection in range(16):
                         if random() < .95:
                             weights[layer][node].append(ships[breeder].network[0][layer][node][connection] * (random()*mutation*2 + 1-mutation ))
                         else:
                             weights[layer][node].append(random()*8-4)
         biases = []
-        for layer in range(3):
+        for layer in range(4):
             biases.append([])
-            if layer == 0 or layer == 1:
-                for node in range(12):
+            if layer <= 2:
+                for node in range(16):
                     if random() < .95:
                         biases[layer].append(ships[breeder].network[1][layer][node] * (random()*mutation*2 + 1-mutation ))
                     else:
                         biases[layer].append(random()*8-4)
-            if layer == 2:
+            if layer == 3:
                 for node in range(3):
                     if random() < .95:
                         biases[layer].append(ships[breeder].network[1][layer][node] * (random()*mutation*2 + 1-mutation ))
@@ -127,7 +127,7 @@ while not window_should_close():
         camera[2] = camera[2] * (1 + scroll)
     if get_mouse_wheel_move() < 0:
         camera[2] = camera[2] * (1 - scroll)
-    if is_key_pressed(KEY_SPACE):
+    if is_key_pressed(KEY_TAB):
         snap = not snap
     if snap == True:
         camera[0] = -snapTo.pos[0]
@@ -190,7 +190,7 @@ while not window_should_close():
             d = ship1.pos - food.pos
             d = sqrt(d[0]**2 + d[1]**2)
             if d < ship1.size + food.size:
-                ship1.fuel += 80
+                ship1.fuel += 50
                 ship1.eats += 1
                 eaten.append(foodIndex)
         if ship1.fuel <= 0:
