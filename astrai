@@ -3,13 +3,14 @@ from random import *
 from pyray import *
 from shapes import *
 from classes import *
+import time
 import numpy as np
 
-width = 1200
-height = 720
+width = 800
+height = 600
 scroll = 0.3
-max_ships = 17
-borders = 1000
+max_ships = 20
+borders = 1500
 
 mutation = 0.3
 
@@ -55,22 +56,33 @@ foods = []
 
 init_window( width, height, "window")
 step = 0
+died = 0
+total_eaten = 0
+timer = time.time()
+goat = ships[0]
 while not window_should_close():
     step += 1
     
     while len(bullets) > 80: bullets.pop(0)
-    while len(foods) > 45: foods.pop(0)
+    while len(foods) > 25: foods.pop(0)
+    while len(foods) < 25: foods.append(Food(np.array([random()*borders*2-borders, random()*borders*2-borders])))
 
     probabilities = []
     scores = []
     for ship in ships:
-        probabilities.append(ship.score() * (random()+0.5))
+        probabilities.append(ship.score() * random())
         scores.append(ship.score())
+        if ship.score() > goat.score():
+            goat = Ship(np.array([.0,.0]), .0, ship.network, [200,200,200])
     breeder = probabilities.index(max(probabilities))
     snapTo = ships[scores.index(max(scores))]
 
-    if step % 60 == 0: print(human_format(sum(probabilities)))
- 
+    if step % 20 == 0:
+        print('average score: '+human_format(sum(scores)/len(ships)))
+        print('ships died so far: '+human_format(died))
+        print('food eaten so far: '+human_format(total_eaten))
+        #print('sim speed: '+str(time.time() - timer))
+        timer = time.time()
     while len(ships) < max_ships:
         weights = []
         for layer in range(4):
@@ -129,6 +141,9 @@ while not window_should_close():
         camera[2] = camera[2] * (1 - scroll)
     if is_key_pressed(KEY_TAB):
         snap = not snap
+    if is_key_pressed(KEY_G):
+        ships.append(goat)
+        print(str(goat.network))
     if snap == True:
         camera[0] = -snapTo.pos[0]
         camera[1] = -snapTo.pos[1]
@@ -177,12 +192,14 @@ while not window_should_close():
             if d < ship1.size + ship2.size:
                 dying.append(index1)
                 dying.append(index2)
+                died += 2
         for bullet in bullets:
             if id(ship1) == bullet.id: continue
             d = ship1.pos - bullet.pos
             d = sqrt(d[0]**2 + d[1]**2)
             if d < ship1.size + ship2.size:
                 dying.append(index1)
+                died += 1
                 for ship3 in ships:
                     if id(ship3) == bullet.id:
                         ship3.kills += 1
@@ -193,10 +210,11 @@ while not window_should_close():
                 ship1.fuel += 50
                 ship1.eats += 1
                 eaten.append(foodIndex)
+                total_eaten += 1
         if ship1.fuel <= 0:
             dying.append(index1)
     foods = [i for j, i in enumerate(foods) if j not in eaten]
-    foods += [Food(ships[i].pos) for i in dying]
+    #foods += [Food(ships[i].pos) for i in dying]
     ships = [i for j, i in enumerate(ships) if j not in dying]
 
     line(-borders, -borders, -borders, borders, camera)
@@ -204,7 +222,6 @@ while not window_should_close():
     line(-borders, borders, borders, borders, camera)
     line(borders, -borders, borders, borders, camera)
 
-    draw_fps(5, 5)
     end_drawing()
 
 

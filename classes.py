@@ -3,10 +3,10 @@ from random import *
 from math import *
 import numpy as np
 
-def sigmoid(x):
+def activation(x):
     if x > 100: return 1
     if x < -100: return 0
-    return 1 / ( 1 + pow(e, -x))
+    return 1 / ( 1 + pow(e, -x*3))
 
 def human_format(num):
     magnitude = 0
@@ -39,7 +39,7 @@ class Ship:
         self.traveled = 0
     def think(self, ships, bullets, foods, camera):
         sensors = self.sense(ships, foods, camera)
-        inputs = sensors[0] + sensors[1] + [self.thrust, self.fuel, self.r, self.vel[0], self.vel[1], random()*8-4]
+        inputs = sensors[0] + sensors[1] + [self.thrust, self.fuel, self.r, self.vel[0], self.vel[1], 1]
         calculated = []
         for layer in range(4):
             calculated.append([])
@@ -52,32 +52,34 @@ class Ship:
                     if layer == 1 or layer == 2:
                         for inp in range(16):
                             calc += self.network[0][layer][node][inp] * calculated[0][inp]
-                    calculated[layer].append(sigmoid(calc))
+                    calculated[layer].append(activation
+                (calc))
             if layer == 3:
                 for node in range(3):
                     calc = self.network[1][layer][node]
                     for inp in range(16):
                         calc += self.network[0][layer][node][inp] * calculated[1][inp]
-                    calculated[layer].append(sigmoid(calc))
+                    calculated[layer].append(activation
+                (calc))
 
         self.thrust = calculated[3][0] * 3
         self.vr = ( calculated[3][1]*2 - 1) * self.turnSpeed
         if calculated[3][2] > 0.5: self.shoot(bullets)
 
     def score(self):
-        return pow(self.age, 1) * pow(self.kills+1, 1.3) * pow(self.eats+1, 2) * pow(self.traveled, 1.3)
+        return pow(self.age, .6) * pow(self.kills+1, 1.3) * pow(self.eats+1, 2) * pow(self.traveled, 1.3) / 1000
 
     def update(self):
         while self.r > pi*2: self.r -= pi*2
         while self.r < 0: self.r += pi*2
         self.age += 1
-        self.fuel -= 0.05
+        self.fuel -= 0.1
 
         self.r += self.vr
         self.fuel -= abs(self.vr / 2)
 
         self.vel -= np.array([sin(self.r), cos(self.r)]) * self.thrust
-        self.fuel -= self.thrust / 4
+        self.fuel -= self.thrust / 2
 
         self.vel *= 0.98
         if hypot(self.vel[0], self.vel[1]) > self.maxV:
@@ -94,16 +96,16 @@ class Ship:
                 dx = cos(ang) * segment * self.segmentSize
                 dy = sin(ang) * segment * self.segmentSize
                 #if segment == self.segments-1: text( str(ray), self.pos[0]+dx, self.pos[1]+dy, 20, camera)
-                #circle( self.pos[0]+dx, self.pos[1]+dy, 4, camera)
+                #circle( self.pos[0]+dx, self.pos[1]+dy, (segment*15+15), camera, Color(255, 255, 255, 60))
                 for ship in ships:
                     if id(ship) != id(self):
                         d = sqrt(pow(ship.pos[0]-(self.pos[0]+dx), 2)+pow(ship.pos[1]-(self.pos[1]+dy), 2))
-                        if d < ship.size:
+                        if d < (segment*15+15) + ship.size:
                             if enemies[ray] == .0:
                                 enemies[ray] = int( (self.segments-segment)/5 * 10)/10
                 for food in foods:
                     d = sqrt(pow(food.pos[0]-(self.pos[0]+dx), 2)+pow(food.pos[1]-(self.pos[1]+dy), 2))
-                    if d < 50:
+                    if d < (segment*15+15):
                         if foodsDetected[ray] == .0:
                             foodsDetected[ray] = int( (self.segments-segment)/5 * 10)/10
         return [enemies, foodsDetected]
